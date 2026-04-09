@@ -19,10 +19,12 @@ info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# 从 config.toml 读取 HY_MOTION_PATH
+# 从 config.toml 读取 HY_MOTION_PATH（处理 ~ 展开）
 get_hy_motion_path() {
     if [[ -f "$CONFIG_FILE" ]]; then
-        grep "^path" "$CONFIG_FILE" | head -1 | sed 's/path = "//' | sed 's/"//' | tr -d ' '
+        local path=$(grep "^path" "$CONFIG_FILE" | head -1 | sed 's/path = "//' | sed 's/"//' | tr -d ' ')
+        # 展开 ~ 为实际路径
+        echo "${path/#\~/$HOME}"
     fi
 }
 
