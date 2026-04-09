@@ -1,6 +1,7 @@
 """T2MRuntime 单例模块"""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -39,7 +40,19 @@ def get_runtime() -> T2MRuntime:
         output_dir = Path(hy_motion_path) / settings.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        _runtime = T2MRuntime(
+        # 切换到 HY-Motion-1.0 目录（WoodenMesh 使用相对路径）
+        original_cwd = os.getcwd()
+        os.chdir(hy_motion_path)
+
+        try:
+            _runtime = T2MRuntime(
+                config_path=config_path,
+                ckpt_name=ckpt_name,
+                disable_prompt_engineering=settings.disable_prompt_engineering,
+                device_ids=list(range(torch.cuda.device_count())) if torch.cuda.is_available() else [],
+            )
+        finally:
+            os.chdir(original_cwd)
             config_path=config_path,
             ckpt_name=ckpt_name,
             disable_prompt_engineering=settings.disable_prompt_engineering,
