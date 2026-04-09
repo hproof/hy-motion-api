@@ -39,6 +39,9 @@ def process_task_background(task_id: str):
 
 async def _process_task(task_id: str):
     """异步处理单个任务"""
+    import sys
+    from io import StringIO
+
     queue = get_queue()
     task = queue.get_task(task_id)
 
@@ -48,9 +51,12 @@ async def _process_task(task_id: str):
     # 更新状态为 running
     queue.update_task(task_id, "running")
 
+    # 打印任务参数
+    params = task["params"]
+    print(f"[task:{task_id}] Processing: text='{params.get('text')}', duration={params.get('duration')}, seeds={params.get('seeds')}, cfg_scale={params.get('cfg_scale')}", flush=True)
+
     try:
         runtime = get_runtime()
-        params = task["params"]
 
         # 生成随机种子（如果不提供）
         seeds = params.get("seeds")
@@ -66,15 +72,22 @@ async def _process_task(task_id: str):
         from ..core.config import get_settings
         output_dir = get_settings().output_dir
 
-        html_content, fbx_files, _ = runtime.generate_motion(
-            text=params["text"],
-            seeds_csv=seeds_csv,
-            duration=params["duration"],
-            cfg_scale=params.get("cfg_scale", 5.0),
-            output_format=output_format,
-            output_dir=output_dir,
-            original_text=params["text"],
-        )
+        # 屏蔽 HY-Motion-1.0 内部的 print 输出
+        old_stdout = sys.stdout
+        sys.stdout = StringIO()
+
+        try:
+            html_content, fbx_files, _ = runtime.generate_motion(
+                text=params["text"],
+                seeds_csv=seeds_csv,
+                duration=params["duration"],
+                cfg_scale=params.get("cfg_scale", 5.0),
+                output_format=output_format,
+                output_dir=output_dir,
+                original_text=params["text"],
+            )
+        finally:
+            sys.stdout = old_stdout
 
         # 提取输出文件路径（fbx_files 是 [fbx, txt, fbx, txt, ...] 格式）
         # 只保留 fbx 文件（偶数索引）
@@ -117,6 +130,8 @@ async def create_task(
 
     # 添加到队列
     task_id = queue.add_task(params)
+
+    print(f"[task:{task_id}] Task submitted: text='{task_data.text}', duration={task_data.duration}, seeds={task_data.seeds}, cfg_scale={task_data.cfg_scale}", flush=True)
 
     # 启动后台处理
     if background_tasks:
