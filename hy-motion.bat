@@ -57,7 +57,7 @@ if "%HY_PATH%"=="" (
     echo 无法从 config.toml 读取 hy_motion.path
     exit /b 1
 )
-set "VENV_DIR=%HY_PATH%\.venv"
+set "VENV_DIR=%HY_PATH%\venv"
 if not exist "%VENV_DIR%" (
     echo HY-Motion-1.0 虚拟环境不存在: %VENV_DIR%
     exit /b 1
@@ -74,7 +74,7 @@ if "%HY_PATH%"=="" (
     echo 无法从 config.toml 读取 hy_motion.path
     exit /b 1
 )
-set "VENV_DIR=%HY_PATH%\.venv"
+set "VENV_DIR=%HY_PATH%\venv"
 if not exist "%VENV_DIR%" (
     echo HY-Motion-1.0 虚拟环境不存在: %VENV_DIR%
     exit /b 1

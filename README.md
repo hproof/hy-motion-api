@@ -29,7 +29,7 @@ user1 = "your-token-here"
 ./hy-motion.sh install
 ```
 
-依赖会安装到 HY-Motion-1.0 的虚拟环境中。
+依赖会安装到 HY-Motion-1.0 的 `venv` 虚拟环境中。
 
 ### 3. 启动服务
 

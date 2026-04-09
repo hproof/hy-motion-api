@@ -28,7 +28,7 @@ get_hy_motion_path() {
 
 get_venv_dir() {
     local hy_path="$1"
-    echo "${hy_path}/.venv"
+    echo "${hy_path}/venv"
 }
 
 get_uvicorn_bin() {
