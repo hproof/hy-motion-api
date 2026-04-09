@@ -4,7 +4,7 @@
 [server]
 host = "0.0.0.0"
 port = 8000
-log_level = "info"
+log_level = "info"  # 日志级别: debug, info, warning, error
 # 数据保留天数（任务和生成文件）
 retention_days = 7
 
