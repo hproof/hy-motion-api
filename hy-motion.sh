@@ -184,17 +184,21 @@ start() {
         local venv_dir=$(get_venv_dir "$hy_path")
         local uvicorn_bin=$(get_uvicorn_bin "$venv_dir")
 
-        local cmd="PYTHONPATH=${PROJECT_DIR} $uvicorn_bin src.hy_motion_api.main:app --host ${host:-0.0.0.0} --port ${port:-8000}"
+        local cmd="$uvicorn_bin src.hy_motion_api.main:app"
+        cmd="$cmd --host ${host:-0.0.0.0}"
+        cmd="$cmd --port ${port:-8000}"
         [[ -n "$log_level" ]] && cmd="$cmd --log-level $log_level"
 
         cd "$PROJECT_DIR"
-        nohup bash -c "$cmd" > /tmp/hy-motion-api.log 2>&1 &
-        echo $! > /tmp/hy-motion-api.pid
+        export PYTHONPATH="${PROJECT_DIR}"
+        nohup $cmd > /tmp/hy-motion-api.log 2>&1 &
+        local pid=$!
 
         # 等待一下确认服务启动
-        sleep 1
-        if kill -0 $(cat /tmp/hy-motion-api.pid) 2>/dev/null; then
-            info "服务已启动 (PID: $(cat /tmp/hy-motion-api.pid))"
+        sleep 2
+        if kill -0 $pid 2>/dev/null; then
+            echo $pid > /tmp/hy-motion-api.pid
+            info "服务已启动 (PID: $pid)"
             info "监听: ${host:-0.0.0.0}:${port:-8000}"
             info "日志: /tmp/hy-motion-api.log"
         else
