@@ -55,6 +55,10 @@ async def _process_task(task_id: str):
     params = task["params"]
     print(f"[task:{task_id}] Processing: text='{params.get('text')}', duration={params.get('duration')}, seeds={params.get('seeds')}, cfg_scale={params.get('cfg_scale')}", flush=True)
 
+    # 检查是否需要输出详细日志
+    from ..core.config import get_settings
+    verbose = get_settings().log_level == "debug"
+
     try:
         runtime = get_runtime()
 
@@ -68,13 +72,12 @@ async def _process_task(task_id: str):
         seeds_csv = ",".join(str(s) for s in seeds)
         output_format = params.get("output_format", "fbx")
 
-        # 调用 T2MRuntime 生成动作（chdir 后工作目录已是 hy_motion_path）
-        from ..core.config import get_settings
         output_dir = get_settings().output_dir
 
-        # 屏蔽 HY-Motion-1.0 内部的 print 输出
+        # 捕获或屏蔽 HY-Motion-1.0 内部的 print 输出
         old_stdout = sys.stdout
-        sys.stdout = StringIO()
+        if verbose:
+            sys.stdout = StringIO()
 
         try:
             html_content, fbx_files, _ = runtime.generate_motion(
@@ -87,7 +90,16 @@ async def _process_task(task_id: str):
                 original_text=params["text"],
             )
         finally:
-            sys.stdout = old_stdout
+            if verbose:
+                captured = sys.stdout.getvalue()
+                sys.stdout = old_stdout
+                if captured:
+                    print(f"[task:{task_id}] --- HY-Motion-1.0 output start ---", flush=True)
+                    for line in captured.strip().split("\n"):
+                        print(f"[task:{task_id}] {line}", flush=True)
+                    print(f"[task:{task_id}] --- HY-Motion-1.0 output end ---", flush=True)
+            else:
+                sys.stdout = old_stdout
 
         # 提取输出文件路径（fbx_files 是 [fbx, txt, fbx, txt, ...] 格式）
         # 只保留 fbx 文件（偶数索引）
