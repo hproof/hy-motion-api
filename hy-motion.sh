@@ -184,14 +184,22 @@ start() {
         local venv_dir=$(get_venv_dir "$hy_path")
         local uvicorn_bin=$(get_uvicorn_bin "$venv_dir")
 
-        local cmd="$uvicorn_bin src.hy_motion_api.main:app --host ${host:-0.0.0.0} --port ${port:-8000}"
+        local cmd="PYTHONPATH=${PROJECT_DIR} $uvicorn_bin src.hy_motion_api.main:app --host ${host:-0.0.0.0} --port ${port:-8000}"
         [[ -n "$log_level" ]] && cmd="$cmd --log-level $log_level"
 
-        nohup $cmd > /tmp/hy-motion-api.log 2>&1 &
+        cd "$PROJECT_DIR"
+        nohup bash -c "$cmd" > /tmp/hy-motion-api.log 2>&1 &
         echo $! > /tmp/hy-motion-api.pid
-        info "服务已启动 (PID: $(cat /tmp/hy-motion-api.pid))"
-        info "监听: ${host:-0.0.0.0}:${port:-8000}"
-        info "日志: /tmp/hy-motion-api.log"
+
+        # 等待一下确认服务启动
+        sleep 1
+        if kill -0 $(cat /tmp/hy-motion-api.pid) 2>/dev/null; then
+            info "服务已启动 (PID: $(cat /tmp/hy-motion-api.pid))"
+            info "监听: ${host:-0.0.0.0}:${port:-8000}"
+            info "日志: /tmp/hy-motion-api.log"
+        else
+            error "服务启动失败，请查看日志: /tmp/hy-motion-api.log"
+        fi
     fi
 }
 
@@ -258,7 +266,14 @@ status() {
             info "服务运行中 (PID: $pid)"
             return
         fi
+        # PID 文件存在但进程不在，检查进程名
         rm -f /tmp/hy-motion-api.pid
+    fi
+
+    # 最后用 ps 检查是否有 uvicorn 在跑
+    if pgrep -f "hy_motion_api.main:app" > /dev/null; then
+        info "服务运行中"
+        return
     fi
 
     info "服务未运行"
