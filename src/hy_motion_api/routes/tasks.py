@@ -50,10 +50,9 @@ async def _process_task(task_id: str):
         output_format = params.get("output_format", "fbx")
 
         # 调用 T2MRuntime 生成动作
-        output_dir = os.path.join(
-            os.environ.get("HY_MOTION_PATH", "G:/git_proj/HY-Motion-1.0"),
-            "output/gradio"
-        )
+        from ..core.config import get_settings
+        settings = get_settings()
+        output_dir = os.path.join(settings.hy_motion_path, settings.output_dir)
 
         html_content, fbx_files, _ = runtime.generate_motion(
             text=params["text"],
