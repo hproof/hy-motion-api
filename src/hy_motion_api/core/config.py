@@ -25,7 +25,7 @@ class Settings:
 
         # HY-Motion 配置
         hy_motion = config.get("hy_motion", {})
-        self.hy_motion_path = hy_motion.get("path", "G:/git_proj/HY-Motion-1.0")
+        self.hy_motion_path = str(Path(hy_motion.get("path", "G:/git_proj/HY-Motion-1.0")).expanduser())
         self.model_config_path = hy_motion.get("config_path", "ckpts/tencent/HY-Motion-1.0/config.yml")
         self.model_ckpt_name = hy_motion.get("checkpoint_name", "latest.ckpt")
         self.output_dir = hy_motion.get("output_dir", "output/gradio")
