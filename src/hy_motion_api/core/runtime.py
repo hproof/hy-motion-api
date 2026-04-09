@@ -51,6 +51,14 @@ def get_runtime() -> T2MRuntime:
                 disable_prompt_engineering=settings.disable_prompt_engineering,
                 device_ids=list(range(torch.cuda.device_count())) if torch.cuda.is_available() else [],
             )
+
+            # Fix FBX converter template path to absolute path
+            if hasattr(_runtime, 'fbx_converter') and _runtime.fbx_converter is not None:
+                fbx_path = _runtime.fbx_converter.template_fbx_path
+                if not Path(fbx_path).is_absolute():
+                    abs_path = str(Path(hy_motion_path) / fbx_path)
+                    _runtime.fbx_converter.template_fbx_path = abs_path
+                    print(f"[runtime] FBX template fixed: {abs_path}")
         finally:
             os.chdir(original_cwd)
 
