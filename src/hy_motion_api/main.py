@@ -21,6 +21,12 @@ async def lifespan(app: FastAPI):
     os.chdir(hy_motion_path)
     print(f">>> Changed working directory to: {hy_motion_path}")
 
+    # 清理过期任务和文件
+    queue = get_queue()
+    deleted_tasks, deleted_files = queue.cleanup_old_tasks(settings.retention_days)
+    if deleted_tasks > 0:
+        print(f">>> Cleaned up {deleted_tasks} old tasks and {len(deleted_files)} files")
+
     # 启动时预加载模型
     print(">>> Loading T2MRuntime...")
     try:

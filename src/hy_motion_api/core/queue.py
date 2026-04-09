@@ -6,7 +6,8 @@ import json
 import uuid
 import fcntl
 import os
-from datetime import datetime
+import glob
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -143,6 +144,78 @@ class TaskQueue:
             result = task.get("result", {})
             return result.get("output_file")
         return None
+
+    def cleanup_old_tasks(self, days: int) -> tuple[int, list[str]]:
+        """清理 N 天前的任务和对应的输出文件
+
+        Args:
+            days: 保留天数
+
+        Returns:
+            tuple: (删除的任务数, 删除的文件列表)
+        """
+        if days <= 0:
+            return 0, []
+
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        tasks = self._read_all()
+        deleted_tasks = 0
+        deleted_files = []
+
+        # 过滤出需要保留的任务
+        remaining_tasks = []
+        for task in tasks:
+            try:
+                created_at_str = task.get("created_at", "")
+                # 处理可能的 Z 后缀
+                created_at_str = created_at_str.replace("Z", "+00:00")
+                if created_at_str:
+                    # 尝试解析 ISO 格式
+                    try:
+                        created_at = datetime.fromisoformat(created_at_str)
+                    except ValueError:
+                        # 尝试简单解析
+                        created_at = datetime.strptime(created_at_str.split(".")[0], "%Y-%m-%dT%H:%M:%S")
+                else:
+                    remaining_tasks.append(task)
+                    continue
+            except (ValueError, AttributeError):
+                remaining_tasks.append(task)
+                continue
+
+            if created_at < cutoff:
+                # 收集需要删除的文件
+                result = task.get("result", {})
+                fbx_files = result.get("fbx_files", [])
+                for fbx_file in fbx_files:
+                    if fbx_file and os.path.exists(fbx_file):
+                        try:
+                            os.remove(fbx_file)
+                            deleted_files.append(fbx_file)
+                        except OSError:
+                            pass
+                # 同时删除同名的 .txt 文件
+                for fbx_file in fbx_files:
+                    if fbx_file:
+                        txt_file = fbx_file.replace(".fbx", ".txt")
+                        if os.path.exists(txt_file):
+                            try:
+                                os.remove(txt_file)
+                                deleted_files.append(txt_file)
+                            except OSError:
+                                pass
+                deleted_tasks += 1
+            else:
+                remaining_tasks.append(task)
+
+        # 重写队列文件
+        with open(self.queue_path, "w", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            for task in remaining_tasks:
+                f.write(json.dumps(task, ensure_ascii=False) + "\n")
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+        return deleted_tasks, deleted_files
 
 
 # 全局队列实例

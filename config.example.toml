@@ -5,6 +5,8 @@
 host = "0.0.0.0"
 port = 8000
 log_level = "info"
+# 数据保留天数（任务和生成文件）
+retention_days = 7
 
 # ============ HY-Motion-1.0 路径配置 ============
 [hy_motion]

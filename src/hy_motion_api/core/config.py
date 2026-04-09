@@ -37,6 +37,9 @@ class Settings:
         # 队列文件路径（固定在 data 目录下）
         self.queue_path = "data/queue.jsonl"
 
+        # 数据保留天数（默认 7 天）
+        self.retention_days = config.get("server", {}).get("retention_days", 7)
+
 
 def _find_config_file() -> Path:
     """查找配置文件"""
