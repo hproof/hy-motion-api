@@ -13,14 +13,9 @@ HTTP API 服务，基于 [HY-Motion-1.0](https://github.com/Tencent-Hunyuan/HY-M
 
 ### 1. 配置
 
-编辑 `config.toml`，配置 HY-Motion-1.0 路径和认证：
-
-```toml
-[hy_motion]
-path = "G:/git_proj/HY-Motion-1.0"
-
-[auth]
-user1 = "your-token-here"
+```bash
+cp config.example.toml config.toml
+# 编辑 config.toml，配置 HY-Motion-1.0 路径和认证
 ```
 
 ### 2. 安装依赖
@@ -54,7 +49,7 @@ hy-motion-api/
 ├── src/hy_motion_api/     # 主包
 ├── data/                   # 数据目录
 ├── docs/                   # 文档
-├── config.toml             # 配置文件
+├── config.example.toml     # 配置模板
 ├── hy-motion.sh            # 服务管理脚本 (Linux)
 ├── hy-motion.bat           # 服务管理脚本 (Windows)
 └── requirements.txt

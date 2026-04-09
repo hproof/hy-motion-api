@@ -1,0 +1,29 @@
+# HY-Motion API 配置文件
+
+# ============ 服务配置 ============
+[server]
+host = "0.0.0.0"
+port = 8000
+log_level = "info"
+
+# ============ HY-Motion-1.0 路径配置 ============
+[hy_motion]
+# HY-Motion-1.0 安装路径
+path = "G:/git_proj/HY-Motion-1.0"
+
+# 模型配置（相对于 HY_MOTION_PATH）
+config_path = "ckpts/tencent/HY-Motion-1.0/config.yml"
+checkpoint_name = "latest.ckpt"
+
+# 输出目录（相对于 HY_MOTION_PATH）
+output_dir = "output/gradio"
+
+# 禁用 Prompt Engineering（节省显存，启用需额外部署 vLLM 服务）
+disable_prompt_engineering = true
+
+# ============ 认证配置 ============
+# 用户凭证，格式：id = "token"
+[auth]
+# 示例：
+# user1 = "token1"
+# user2 = "token2"
