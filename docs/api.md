@@ -137,7 +137,12 @@
   "updated_at": "2026-04-09T10:00:15Z",
   "completed_at": "2026-04-09T10:00:15Z",
   "result": {
-    "output_file": "G:/git_proj/HY-Motion-1.0/output/gradio/20260409_100000123_abc.fbx"
+    "fbx_files": [
+      "output/api/20260409_100000123_abc_000.fbx",
+      "output/api/20260409_100000123_abc_001.fbx",
+      "output/api/20260409_100000123_abc_002.fbx",
+      "output/api/20260409_100000123_abc_003.fbx"
+    ]
   },
   "error": null
 }

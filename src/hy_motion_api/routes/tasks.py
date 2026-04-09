@@ -26,11 +26,11 @@ def process_task_background(task_id: str):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        print(f"[task:{task_id}] Starting background processing", flush=True)
+        print(f"[task] {task_id}: Starting background processing", flush=True)
         loop.run_until_complete(_process_task(task_id))
-        print(f"[task:{task_id}] Background processing completed", flush=True)
+        print(f"[task] {task_id}: Background processing completed", flush=True)
     except Exception as e:
-        print(f"[task:{task_id}] Background processing error: {e}", flush=True)
+        print(f"[task] {task_id}: Background processing error: {e}", flush=True)
         import traceback
         traceback.print_exc()
     finally:
@@ -53,7 +53,7 @@ async def _process_task(task_id: str):
 
     # 打印任务参数
     params = task["params"]
-    print(f"[task:{task_id}] Processing: text='{params.get('text')}', duration={params.get('duration')}, seeds={params.get('seeds')}, cfg_scale={params.get('cfg_scale')}", flush=True)
+    print(f"[task] {task_id}: Processing: text='{params.get('text')}', duration={params.get('duration')}, seeds={params.get('seeds')}, cfg_scale={params.get('cfg_scale')}", flush=True)
 
     # 检查是否需要输出详细日志
     from ..core.config import get_settings
@@ -92,10 +92,10 @@ async def _process_task(task_id: str):
             captured = sys.stdout.getvalue()
             sys.stdout = old_stdout
             if verbose and captured:
-                print(f"[task:{task_id}] --- HY-Motion-1.0 output start ---", flush=True)
+                print(f"[task] {task_id}: --- HY-Motion-1.0 output start ---", flush=True)
                 for line in captured.strip().split("\n"):
-                    print(f"[task:{task_id}] {line}", flush=True)
-                print(f"[task:{task_id}] --- HY-Motion-1.0 output end ---", flush=True)
+                    print(f"[task] {task_id}: {line}", flush=True)
+                print(f"[task] {task_id}: --- HY-Motion-1.0 output end ---", flush=True)
 
         # 提取输出文件路径（fbx_files 是 [fbx, txt, fbx, txt, ...] 格式）
         # 只保留 fbx 文件（偶数索引）
@@ -112,7 +112,7 @@ async def _process_task(task_id: str):
         )
 
     except Exception as e:
-        print(f"[task:{task_id}] Task processing error: {e}", flush=True)
+        print(f"[task] {task_id}: Task processing error: {e}", flush=True)
         import traceback
         traceback.print_exc()
         queue.update_task(task_id, "failed", error=str(e))
@@ -139,7 +139,7 @@ async def create_task(
     # 添加到队列
     task_id = queue.add_task(params)
 
-    print(f"[task:{task_id}] Task submitted: text='{task_data.text}', duration={task_data.duration}, seeds={task_data.seeds}, cfg_scale={task_data.cfg_scale}", flush=True)
+    print(f"[task] {task_id}: Task submitted: text='{task_data.text}', duration={task_data.duration}, seeds={task_data.seeds}, cfg_scale={task_data.cfg_scale}", flush=True)
 
     # 启动后台处理
     if background_tasks:
