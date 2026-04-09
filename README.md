@@ -11,13 +11,21 @@ HTTP API 服务，基于 [HY-Motion-1.0](https://github.com/Tencent-Hunyuan/HY-M
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 创建虚拟环境
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate   # Windows
+```
+
+### 2. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 配置
+### 3. 配置
 
 编辑 `config.toml`，配置 HY-Motion-1.0 路径和认证：
 
@@ -29,13 +37,13 @@ path = "G:/git_proj/HY-Motion-1.0"
 user1 = "your-token-here"
 ```
 
-### 3. 启动服务
+### 4. 启动服务
 
 ```bash
 uvicorn src.hy_motion_api.main:app
 ```
 
-### 4. 验证
+### 5. 验证
 
 ```bash
 curl http://localhost:8000/health
@@ -53,6 +61,8 @@ hy-motion-api/
 ├── data/                   # 数据目录
 ├── docs/                   # 文档
 ├── config.toml             # 配置文件
+├── hy-motion.sh            # 服务管理脚本 (Linux)
+├── hy-motion.bat           # 服务管理脚本 (Windows)
 └── requirements.txt
 ```
 
