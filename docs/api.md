@@ -83,7 +83,7 @@
 |------|------|------|--------|------|
 | `text` | string | 是 | - | 动作描述文本（英文），建议 60 词以内 |
 | `duration` | float | 否 | `5.0` | 动作时长（秒），有效范围 `0.5 ~ 12.0` |
-| `seeds` | array[int] | 否 | `[42]` | 随机种子列表，最多 10 个 |
+| `seeds` | array[int] | 否 | `[0, 1, 2, 3]` | 随机种子列表，最多 10 个，生成对应数量版本 |
 | `cfg_scale` | float | 否 | `5.0` | CFG 引导强度，范围 `1.0 ~ 20.0` |
 | `output_format` | string | 否 | `"fbx"` | 输出格式：`"fbx"` 或 `"dict"` |
 
@@ -151,7 +151,7 @@
 | `created_at` | string | 任务创建时间 |
 | `updated_at` | string | 最后更新时间 |
 | `completed_at` | string | 任务完成时间（仅 completed 时有值） |
-| `result.output_file` | string | 输出文件路径（仅 completed 时有值） |
+| `result.fbx_files` | array[string] | 所有版本的 FBX 文件路径列表 |
 | `result.html_content` | string | HTML 可视化内容（仅 dict 格式有值） |
 | `error` | string | 错误信息（仅 failed 时有值） |
 
@@ -210,6 +210,7 @@
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
+| `version` | int | `0` | FBX 版本号（0 ~ 3），对应不同随机种子生成的结果 |
 | `format` | string | `"fbx"` | 下载格式：`"fbx"` 或 `"dict"` |
 
 **响应**:
@@ -240,7 +241,7 @@ curl -X POST http://localhost:8000/tasks \
   -H "Content-Type: application/json" \
   -H "X-Id: user1" \
   -H "X-Token: token1" \
-  -d '{"text": "A person walks forward.", "duration": 5.0, "seeds": [42]}'
+  -d '{"text": "A person walks forward.", "duration": 5.0}'
 
 # 查询任务状态
 curl http://localhost:8000/tasks/550e8400-e29b-41d4-a716-446655440000 \
@@ -261,6 +262,11 @@ curl http://localhost:8000/download/550e8400-e29b-41d4-a716-446655440000?format=
 curl http://localhost:8000/queue \
   -H "X-Id: user1" \
   -H "X-Token: token1"
+
+# 下载指定版本（version=1）
+curl -O -J "http://localhost:8000/download/550e8400-e29b-41d4-a716-446655440000?version=1" \
+  -H "X-Id: user1" \
+  -H "X-Token: token1"
 ```
 
 ### Python
@@ -274,8 +280,8 @@ HEADERS = {
     "X-Token": "token1"
 }
 
-# 提交任务
-def create_task(text: str, duration: float = 5.0, seeds: list = [42]):
+# 提交任务（默认生成 4 个版本）
+def create_task(text: str, duration: float = 5.0, seeds: list = [0, 1, 2, 3]):
     response = requests.post(
         f"{BASE_URL}/tasks",
         json={
@@ -300,10 +306,10 @@ def get_task(task_id: str):
     return response.json()
 
 # 下载文件
-def download_file(task_id: str, format: str = "fbx"):
+def download_file(task_id: str, format: str = "fbx", version: int = 0):
     response = requests.get(
         f"{BASE_URL}/download/{task_id}",
-        params={"format": format},
+        params={"format": format, "version": version},
         headers=HEADERS,
         stream=True
     )
