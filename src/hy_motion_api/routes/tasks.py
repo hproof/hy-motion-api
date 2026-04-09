@@ -74,10 +74,9 @@ async def _process_task(task_id: str):
 
         output_dir = get_settings().output_dir
 
-        # 捕获或屏蔽 HY-Motion-1.0 内部的 print 输出
+        # 捕获 HY-Motion-1.0 内部的 print 输出
         old_stdout = sys.stdout
-        if verbose:
-            sys.stdout = StringIO()
+        sys.stdout = StringIO()
 
         try:
             html_content, fbx_files, _ = runtime.generate_motion(
@@ -90,16 +89,13 @@ async def _process_task(task_id: str):
                 original_text=params["text"],
             )
         finally:
-            if verbose:
-                captured = sys.stdout.getvalue()
-                sys.stdout = old_stdout
-                if captured:
-                    print(f"[task:{task_id}] --- HY-Motion-1.0 output start ---", flush=True)
-                    for line in captured.strip().split("\n"):
-                        print(f"[task:{task_id}] {line}", flush=True)
-                    print(f"[task:{task_id}] --- HY-Motion-1.0 output end ---", flush=True)
-            else:
-                sys.stdout = old_stdout
+            captured = sys.stdout.getvalue()
+            sys.stdout = old_stdout
+            if verbose and captured:
+                print(f"[task:{task_id}] --- HY-Motion-1.0 output start ---", flush=True)
+                for line in captured.strip().split("\n"):
+                    print(f"[task:{task_id}] {line}", flush=True)
+                print(f"[task:{task_id}] --- HY-Motion-1.0 output end ---", flush=True)
 
         # 提取输出文件路径（fbx_files 是 [fbx, txt, fbx, txt, ...] 格式）
         # 只保留 fbx 文件（偶数索引）
