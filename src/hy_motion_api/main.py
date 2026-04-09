@@ -2,7 +2,7 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Header
 from fastapi.responses import FileResponse, StreamingResponse
 
 from .core.config import get_settings
@@ -66,8 +66,8 @@ async def download_file(
     task_id: str,
     version: int | None = None,
     format: str = "fbx",
-    x_id: str | None = None,
-    x_token: str | None = None,
+    x_id: str | None = Header(None),
+    x_token: str | None = Header(None),
 ):
     """下载任务结果文件
 
