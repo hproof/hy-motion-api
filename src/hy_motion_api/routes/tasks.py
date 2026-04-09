@@ -70,11 +70,10 @@ async def _process_task(task_id: str):
             original_text=params["text"],
         )
 
-        # 提取输出文件路径
-        output_file = None
-        if fbx_files:
-            # fbx_files 是 [fbx_path, txt_path, fbx_path, txt_path, ...] 格式
-            output_file = fbx_files[0] if fbx_files else None
+        # 提取输出文件路径（fbx_files 是 [fbx, txt, fbx, txt, ...] 格式）
+        # 只保留 fbx 文件（偶数索引）
+        all_fbx_files = [f for i, f in enumerate(fbx_files) if i % 2 == 0] if fbx_files else []
+        output_file = all_fbx_files[0] if all_fbx_files else None
 
         # 更新任务为完成
         queue.update_task(
@@ -82,6 +81,7 @@ async def _process_task(task_id: str):
             "completed",
             result={
                 "output_file": output_file,
+                "fbx_files": all_fbx_files,
                 "html_content": html_content if output_format == "dict" else None,
             },
         )

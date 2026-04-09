@@ -58,6 +58,7 @@ async def root():
 @app.get("/download/{task_id}")
 async def download_file(
     task_id: str,
+    version: int | None = None,
     format: str = "fbx",
     x_id: str | None = None,
     x_token: str | None = None,
@@ -65,10 +66,10 @@ async def download_file(
     """下载任务结果文件
 
     Query Parameters:
+        version: 版本号（0-3），默认下载第一个版本
         format: 下载格式，fbx（默认）或 dict
     """
     from .core.auth import verify_token
-    from .core.runtime import get_runtime
 
     # 验证凭证
     verify_token(x_id, x_token)
@@ -89,13 +90,19 @@ async def download_file(
         html_content = result.get("html_content")
         if html_content:
             return Response(content=html_content, media_type="text/html")
-        # 如果没有 HTML，返回模型输出（这里简化处理）
         return {"error": "No dict output available"}, 404
 
-    # 默认返回 FBX 文件
-    output_file = result.get("output_file")
-    if not output_file or not os.path.exists(output_file):
-        return {"error": "Output file not found"}, 404
+    # 返回 FBX 文件
+    fbx_files = result.get("fbx_files", [])
+    if not fbx_files:
+        return {"error": "No FBX files available"}, 404
+
+    # 根据 version 选择文件，默认选第一个
+    idx = version if version is not None and 0 <= version < len(fbx_files) else 0
+    output_file = fbx_files[idx]
+
+    if not os.path.exists(output_file):
+        return {"error": f"Output file not found: {output_file}"}, 404
 
     return FileResponse(
         path=output_file,

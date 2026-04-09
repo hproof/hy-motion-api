@@ -43,6 +43,7 @@ class TaskCreateResponse(BaseModel):
 class TaskResult(BaseModel):
     """任务结果"""
     output_file: str | None = None
+    fbx_files: list[str] | None = None
     html_content: str | None = None
     message: str | None = None
 
