@@ -49,10 +49,9 @@ async def _process_task(task_id: str):
         seeds_csv = ",".join(str(s) for s in params["seeds"])
         output_format = params.get("output_format", "fbx")
 
-        # 调用 T2MRuntime 生成动作
+        # 调用 T2MRuntime 生成动作（chdir 后工作目录已是 hy_motion_path）
         from ..core.config import get_settings
-        settings = get_settings()
-        output_dir = os.path.join(settings.hy_motion_path, settings.output_dir)
+        output_dir = get_settings().output_dir
 
         html_content, fbx_files, _ = runtime.generate_motion(
             text=params["text"],

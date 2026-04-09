@@ -14,6 +14,13 @@ from .routes import health, queue, tasks
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
+    # 切换到 HY-Motion-1.0 目录（HY-Motion-1.0 内部使用相对路径）
+    settings = get_settings()
+    hy_motion_path = settings.hy_motion_path
+    original_cwd = os.getcwd()
+    os.chdir(hy_motion_path)
+    print(f">>> Changed working directory to: {hy_motion_path}")
+
     # 启动时预加载模型
     print(">>> Loading T2MRuntime...")
     try:
@@ -24,7 +31,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # 关闭时清理
+    # 关闭时恢复工作目录
+    os.chdir(original_cwd)
     print(">>> Shutting down...")
 
 
