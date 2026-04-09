@@ -33,7 +33,9 @@ def get_runtime() -> T2MRuntime:
 
         # 构建 config 路径
         config_path = str(Path(hy_motion_path) / settings.model_config_path)
-        ckpt_name = settings.model_ckpt_name
+        # 构建 checkpoint 完整路径（避免相对路径导致找不到文件）
+        ckpt_dir = Path(config_path).parent
+        ckpt_name = str(ckpt_dir / settings.model_ckpt_name)
 
         # 确保输出目录存在
         output_dir = Path(hy_motion_path) / settings.output_dir
