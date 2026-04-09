@@ -1,0 +1,7 @@
+# Web
+fastapi>=0.100
+uvicorn[standard]>=0.20
+pydantic>=2.0
+
+# TOML 配置
+tomli>=2.0; python_version < "3.11"
