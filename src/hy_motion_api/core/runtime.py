@@ -28,6 +28,9 @@ def get_runtime() -> T2MRuntime:
         if hy_motion_path not in sys.path:
             sys.path.insert(0, hy_motion_path)
 
+        # 导入 T2MRuntime
+        from hymotion.utils.t2m_runtime import T2MRuntime  # noqa: F401
+
         # 构建 config 路径
         config_path = str(Path(hy_motion_path) / settings.model_config_path)
         ckpt_name = settings.model_ckpt_name
