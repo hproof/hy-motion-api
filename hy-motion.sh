@@ -136,23 +136,56 @@ disable() {
 # 启动服务
 start() {
     check_systemd
-    if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        info "服务已在运行"
-        return
+
+    # 检查服务是否已注册
+    if systemctl list-unit-files "$SERVICE_NAME.service" &>/dev/null; then
+        if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+            info "服务已在运行"
+            return
+        fi
+        systemctl start "$SERVICE_NAME"
+        info "服务已启动"
+    else
+        # 服务未注册，直接后台运行
+        info "服务未注册，直接启动..."
+        local hy_path=$(get_hy_motion_path)
+        local venv_dir=$(get_venv_dir "$hy_path")
+        local uvicorn_bin=$(get_uvicorn_bin "$venv_dir")
+
+        nohup "$uvicorn_bin" src.hy_motion_api.main:app > /tmp/hy-motion-api.log 2>&1 &
+        echo $! > /tmp/hy-motion-api.pid
+        info "服务已启动 (PID: $(cat /tmp/hy-motion-api.pid))"
+        info "日志: /tmp/hy-motion-api.log"
     fi
-    systemctl start "$SERVICE_NAME"
-    info "服务已启动"
 }
 
 # 停止服务
 stop() {
     check_systemd
-    if ! systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        info "服务已停止"
-        return
+
+    # 先尝试 systemctl
+    if systemctl list-unit-files "$SERVICE_NAME.service" &>/dev/null; then
+        if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+            systemctl stop "$SERVICE_NAME"
+            info "服务已停止"
+            return
+        fi
     fi
-    systemctl stop "$SERVICE_NAME"
-    info "服务已停止"
+
+    # 直接运行的情况
+    if [[ -f /tmp/hy-motion-api.pid ]]; then
+        pid=$(cat /tmp/hy-motion-api.pid)
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid"
+            rm -f /tmp/hy-motion-api.pid
+            info "服务已停止"
+        else
+            rm -f /tmp/hy-motion-api.pid
+            info "服务未运行"
+        fi
+    else
+        info "服务未运行"
+    fi
 }
 
 # 重启服务

@@ -91,9 +91,20 @@ echo 已关闭开机自启
 goto :eof
 
 :start
+call :read_config
+if "%HY_PATH%"=="" (
+    echo 无法从 config.toml 读取 hy_motion.path
+    exit /b 1
+)
+set "VENV_DIR=%HY_PATH%\venv"
+
 echo 启动服务...
-schtasks /run /tn "%SERVICE_NAME%" 2>nul || (
-    echo 服务未注册，请先运行 enable
+schtasks /query /tn "%SERVICE_NAME%" >nul 2>&1
+if %errorlevel% equ 0 (
+    schtasks /run /tn "%SERVICE_NAME%"
+) else (
+    echo 服务未注册，直接启动...
+    start /b cmd /c "\"%VENV_DIR%\Scripts\uvicorn.exe\" src.hy_motion_api.main:app --app-dir \"%PROJECT_DIR%\""
 )
 goto :eof
 
