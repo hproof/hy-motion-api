@@ -1,9 +1,16 @@
 """任务相关的 Pydantic 模型"""
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+
+def to_iso(dt: datetime) -> str:
+    """将 datetime 转为 ISO 格式字符串，确保包含时区信息"""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
 
 
 class OutputFormat(str, Enum):
@@ -39,6 +46,10 @@ class TaskCreateResponse(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime
 
+    @field_serializer('created_at')
+    def serialize_created_at(self, dt: datetime) -> str:
+        return to_iso(dt)
+
 
 class TaskResult(BaseModel):
     """任务结果"""
@@ -57,6 +68,10 @@ class TaskDetailResponse(BaseModel):
     completed_at: datetime | None = None
     result: TaskResult | None = None
     error: str | None = None
+
+    @field_serializer('created_at', 'updated_at', 'completed_at')
+    def serialize_dates(self, dt: datetime | None) -> str | None:
+        return to_iso(dt) if dt else None
 
 
 class QueueStatsResponse(BaseModel):
