@@ -157,7 +157,7 @@ class TaskQueue:
         if days <= 0:
             return 0, []
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         tasks = self._read_all()
         deleted_tasks = 0
         deleted_files = []
