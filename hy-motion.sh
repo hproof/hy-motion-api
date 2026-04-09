@@ -298,6 +298,32 @@ logs() {
     fi
 }
 
+# 测试连通性
+test() {
+    local host=$(get_server_host)
+    local port=$(get_server_port)
+    local addr="${host:-0.0.0.0}:${port:-8000}"
+
+    info "测试连通性: http://$addr"
+
+    # 检查本地服务
+    if curl -s --connect-timeout 3 "http://localhost:${port:-8000}/health" > /tmp/hy-motion-test.json 2>/dev/null; then
+        info "✓ 服务可达"
+        cat /tmp/hy-motion-test.json
+        rm -f /tmp/hy-motion-test.json
+    else
+        warn "✗ 服务不可达"
+        rm -f /tmp/hy-motion-test.json
+
+        # 检查服务是否在跑
+        if pgrep -f "hy_motion_api.main:app" > /dev/null; then
+            info "服务进程存在，可能是端口或防火墙问题"
+        else
+            info "服务进程不存在，请先启动: ./hy-motion.sh start"
+        fi
+    fi
+}
+
 help() {
     echo "HY-Motion API 服务管理脚本"
     echo ""
@@ -313,6 +339,7 @@ help() {
     echo "  reload   重载配置"
     echo "  status   查看状态"
     echo "  logs     查看日志"
+    echo "  test     测试连通性"
     echo "  help     显示帮助"
 }
 
@@ -326,6 +353,7 @@ case "$1" in
     reload)   reload ;;
     status)   status ;;
     logs)     logs ;;
+    test)     test ;;
     help|--help|-h) help ;;
     *)        help ;;
 esac
