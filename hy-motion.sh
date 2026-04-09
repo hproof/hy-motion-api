@@ -241,13 +241,42 @@ reload() {
 # 查看状态
 status() {
     check_systemd
-    systemctl status "$SERVICE_NAME" --no-pager
+
+    # 先检查 systemd
+    if systemctl list-unit-files "$SERVICE_NAME.service" &>/dev/null; then
+        if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+            info "服务运行中 (systemd)"
+            systemctl status "$SERVICE_NAME" --no-pager
+            return
+        fi
+    fi
+
+    # 检查直接运行
+    if [[ -f /tmp/hy-motion-api.pid ]]; then
+        pid=$(cat /tmp/hy-motion-api.pid)
+        if kill -0 "$pid" 2>/dev/null; then
+            info "服务运行中 (PID: $pid)"
+            return
+        fi
+        rm -f /tmp/hy-motion-api.pid
+    fi
+
+    info "服务未运行"
 }
 
 # 查看日志
 logs() {
-    check_systemd
-    journalctl -u "$SERVICE_NAME" -f --no-pager
+    # systemd 日志
+    if systemctl list-unit-files "$SERVICE_NAME.service" &>/dev/null; then
+        journalctl -u "$SERVICE_NAME" -f --no-pager
+    else
+        # 直接运行，查看日志文件
+        if [[ -f /tmp/hy-motion-api.log ]]; then
+            tail -f /tmp/hy-motion-api.log
+        else
+            info "日志文件不存在: /tmp/hy-motion-api.log"
+        fi
+    fi
 }
 
 help() {
