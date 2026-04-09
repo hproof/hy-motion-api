@@ -22,10 +22,17 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 def process_task_background(task_id: str):
     """后台处理任务（在线程池中运行，避免阻塞事件循环）"""
+    import sys
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
+        print(f"[task:{task_id}] Starting background processing", flush=True)
         loop.run_until_complete(_process_task(task_id))
+        print(f"[task:{task_id}] Background processing completed", flush=True)
+    except Exception as e:
+        print(f"[task:{task_id}] Background processing error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
     finally:
         loop.close()
 
@@ -80,6 +87,9 @@ async def _process_task(task_id: str):
         )
 
     except Exception as e:
+        print(f"[task:{task_id}] Task processing error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         queue.update_task(task_id, "failed", error=str(e))
 
 
