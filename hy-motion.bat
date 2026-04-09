@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 set "SERVICE_NAME=hy-motion-api"
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_DIR=%SCRIPT_DIR%"
-set "VENV_DIR=%PROJECT_DIR%\.venv"
+set "CONFIG_FILE=%PROJECT_DIR%\config.toml"
 
 echo HY-Motion API 服务管理脚本
 echo =============================
@@ -29,7 +29,7 @@ if "%1"=="disable" goto disable
 echo 用法: hy-motion.bat [command]
 echo.
 echo Commands:
-echo   install   安装 Python 依赖
+echo   install   安装 Python 依赖 (到 HY-Motion-1.0 venv)
 echo   enable    开启开机自启 (需管理员)
 echo   disable   关闭开机自启 (需管理员)
 echo   start     启动服务
@@ -38,15 +38,48 @@ echo   restart   重启服务
 echo   reload    重载配置
 goto :eof
 
+:: 从 config.toml 读取 HY_MOTION_PATH
+:read_config
+set "HY_PATH="
+for /f "usebackq tokens=1,2 delims==" %%a in (`findstr /c:"path" /c:"[hy_motion]" "%CONFIG_FILE%"`) do (
+    if "%%a"=="path" (
+        set "HY_PATH=%%b"
+        set "HY_PATH=!HY_PATH:"=!"
+        set "HY_PATH=!HY_PATH: =!"
+        goto :eof
+    )
+)
+goto :eof
+
 :install
-echo 安装 Python 依赖...
-pip install -r "%PROJECT_DIR%\requirements.txt"
+call :read_config
+if "%HY_PATH%"=="" (
+    echo 无法从 config.toml 读取 hy_motion.path
+    exit /b 1
+)
+set "VENV_DIR=%HY_PATH%\.venv"
+if not exist "%VENV_DIR%" (
+    echo HY-Motion-1.0 虚拟环境不存在: %VENV_DIR%
+    exit /b 1
+)
+echo 使用 HY-Motion-1.0 虚拟环境: %VENV_DIR%
+echo 安装 Python 依赖到 HY-Motion-1.0...
+"%VENV_DIR%\Scripts\pip.exe" install -r "%PROJECT_DIR%\requirements.txt"
 echo 安装完成
 goto :eof
 
 :enable
+call :read_config
+if "%HY_PATH%"=="" (
+    echo 无法从 config.toml 读取 hy_motion.path
+    exit /b 1
+)
+set "VENV_DIR=%HY_PATH%\.venv"
+if not exist "%VENV_DIR%" (
+    echo HY-Motion-1.0 虚拟环境不存在: %VENV_DIR%
+    exit /b 1
+)
 echo 开启开机自启...
-:: 使用 schtasks 创建开机任务
 schtasks /create /tn "%SERVICE_NAME%" /tr "\"%VENV_DIR%\Scripts\uvicorn.exe\" src.hy_motion_api.main:app --app-dir \"%PROJECT_DIR%\"" /sc onlogon /rl limited /f
 echo 已开启开机自启
 goto :eof

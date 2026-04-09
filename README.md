@@ -11,21 +11,7 @@ HTTP API 服务，基于 [HY-Motion-1.0](https://github.com/Tencent-Hunyuan/HY-M
 
 ## 快速开始
 
-### 1. 创建虚拟环境
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-.venv\Scripts\activate   # Windows
-```
-
-### 2. 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. 配置
+### 1. 配置
 
 编辑 `config.toml`，配置 HY-Motion-1.0 路径和认证：
 
@@ -37,13 +23,21 @@ path = "G:/git_proj/HY-Motion-1.0"
 user1 = "your-token-here"
 ```
 
-### 4. 启动服务
+### 2. 安装依赖
 
 ```bash
-uvicorn src.hy_motion_api.main:app
+./hy-motion.sh install
 ```
 
-### 5. 验证
+依赖会安装到 HY-Motion-1.0 的虚拟环境中。
+
+### 3. 启动服务
+
+```bash
+./hy-motion.sh start
+```
+
+### 4. 验证
 
 ```bash
 curl http://localhost:8000/health
@@ -66,12 +60,15 @@ hy-motion-api/
 └── requirements.txt
 ```
 
-## 部署
-
-### 安装依赖
+## 服务管理
 
 ```bash
-./hy-motion.sh install
+./hy-motion.sh start     # 启动
+./hy-motion.sh stop      # 停止
+./hy-motion.sh restart  # 重启
+./hy-motion.sh reload   # 重载配置
+./hy-motion.sh status   # 查看状态
+./hy-motion.sh logs    # 查看日志 (Linux)
 ```
 
 ### 开机自启
@@ -82,18 +79,6 @@ sudo ./hy-motion.sh enable
 
 # Windows (任务计划)
 hy-motion.bat enable
-```
-
-### 服务管理
-
-```bash
-./hy-motion.sh start     # 启动
-./hy-motion.sh stop      # 停止
-./hy-motion.sh restart  # 重启
-./hy-motion.sh reload   # 重载配置
-./hy-motion.sh status   # 查看状态
-./hy-motion.sh logs    # 查看日志 (Linux)
-./hy-motion.sh disable  # 关闭开机自启
 ```
 
 ## 安全建议
