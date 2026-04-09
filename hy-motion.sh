@@ -36,6 +36,25 @@ get_uvicorn_bin() {
     echo "${venv_dir}/bin/uvicorn"
 }
 
+# 从 config.toml 读取服务配置
+get_server_host() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        grep -A5 "^\[server\]" "$CONFIG_FILE" | grep "^host" | sed 's/host = "//' | sed 's/"//' | tr -d ' '
+    fi
+}
+
+get_server_port() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        grep -A5 "^\[server\]" "$CONFIG_FILE" | grep "^port" | sed 's/port = //' | tr -d ' '
+    fi
+}
+
+get_server_log_level() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        grep -A5 "^\[server\]" "$CONFIG_FILE" | grep "^log_level" | sed 's/log_level = "//' | sed 's/"//' | tr -d ' '
+    fi
+}
+
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         error "请使用 sudo 运行此脚本"
@@ -95,6 +114,13 @@ enable() {
         exit 1
     fi
 
+    local host=$(get_server_host)
+    local port=$(get_server_port)
+    local log_level=$(get_server_log_level)
+
+    local exec_start="${uvicorn_bin} src.hy_motion_api.main:app --host ${host:-0.0.0.0} --port ${port:-8000}"
+    [[ -n "$log_level" ]] && exec_start="$exec_start --log-level $log_level"
+
     cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=HY-Motion API
@@ -105,7 +131,7 @@ Type=simple
 User=${SUDO_USER:-$(whoami)}
 WorkingDirectory=${PROJECT_DIR}
 Environment="PYTHONPATH=${hy_path}"
-ExecStart=${uvicorn_bin} src.hy_motion_api.main:app
+ExecStart=$exec_start
 Restart=always
 RestartSec=5
 
@@ -137,6 +163,10 @@ disable() {
 start() {
     check_systemd
 
+    local host=$(get_server_host)
+    local port=$(get_server_port)
+    local log_level=$(get_server_log_level)
+
     # 检查服务是否已注册
     if systemctl list-unit-files "$SERVICE_NAME.service" &>/dev/null; then
         if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
@@ -152,9 +182,13 @@ start() {
         local venv_dir=$(get_venv_dir "$hy_path")
         local uvicorn_bin=$(get_uvicorn_bin "$venv_dir")
 
-        nohup "$uvicorn_bin" src.hy_motion_api.main:app > /tmp/hy-motion-api.log 2>&1 &
+        local cmd="$uvicorn_bin src.hy_motion_api.main:app --host ${host:-0.0.0.0} --port ${port:-8000}"
+        [[ -n "$log_level" ]] && cmd="$cmd --log-level $log_level"
+
+        nohup $cmd > /tmp/hy-motion-api.log 2>&1 &
         echo $! > /tmp/hy-motion-api.pid
         info "服务已启动 (PID: $(cat /tmp/hy-motion-api.pid))"
+        info "监听: ${host:-0.0.0.0}:${port:-8000}"
         info "日志: /tmp/hy-motion-api.log"
     fi
 }

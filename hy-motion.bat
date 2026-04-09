@@ -38,16 +38,23 @@ echo   restart   重启服务
 echo   reload    重载配置
 goto :eof
 
-:: 从 config.toml 读取 HY_MOTION_PATH
+:: 从 config.toml 读取配置
 :read_config
 set "HY_PATH="
-for /f "usebackq tokens=1,2 delims==" %%a in (`findstr /c:"path" /c:"[hy_motion]" "%CONFIG_FILE%"`) do (
-    if "%%a"=="path" (
-        set "HY_PATH=%%b"
-        set "HY_PATH=!HY_PATH:"=!"
-        set "HY_PATH=!HY_PATH: =!"
-        goto :eof
-    )
+set "SERVER_HOST=0.0.0.0"
+set "SERVER_PORT=8000"
+set "SERVER_LOG_LEVEL="
+
+for /f "usebackq tokens=1,2 delims==" %%a in (`findstr /c:"path" /c:"host" /c:"port" /c:"log_level" "%CONFIG_FILE%"`) do (
+    set "key=%%a"
+    set "val=%%b"
+    set "val=!val:"=!"
+    set "val=!val: =!"
+
+    if /i "!key!"=="path" set "HY_PATH=!val!"
+    if /i "!key!"=="host" set "SERVER_HOST=!val!"
+    if /i "!key!"=="port" set "SERVER_PORT=!val!"
+    if /i "!key!"=="log_level" set "SERVER_LOG_LEVEL=!val!"
 )
 goto :eof
 
@@ -79,8 +86,13 @@ if not exist "%VENV_DIR%" (
     echo HY-Motion-1.0 虚拟环境不存在: %VENV_DIR%
     exit /b 1
 )
+
+set "UVICORN_CMD=%VENV_DIR%\Scripts\uvicorn.exe"
+set "APP_CMD=src.hy_motion_api.main:app --app-dir \"%PROJECT_DIR%\" --host %SERVER_HOST% --port %SERVER_PORT%"
+if defined SERVER_LOG_LEVEL set "APP_CMD=!APP_CMD! --log-level %SERVER_LOG_LEVEL%"
+
 echo 开启开机自启...
-schtasks /create /tn "%SERVICE_NAME%" /tr "\"%VENV_DIR%\Scripts\uvicorn.exe\" src.hy_motion_api.main:app --app-dir \"%PROJECT_DIR%\"" /sc onlogon /rl limited /f
+schtasks /create /tn "%SERVICE_NAME%" /tr "\"%UVICORN_CMD%\" %APP_CMD%" /sc onlogon /rl limited /f
 echo 已开启开机自启
 goto :eof
 
@@ -104,7 +116,10 @@ if %errorlevel% equ 0 (
     schtasks /run /tn "%SERVICE_NAME%"
 ) else (
     echo 服务未注册，直接启动...
-    start /b cmd /c "\"%VENV_DIR%\Scripts\uvicorn.exe\" src.hy_motion_api.main:app --app-dir \"%PROJECT_DIR%\""
+    set "UVICORN_CMD=%VENV_DIR%\Scripts\uvicorn.exe"
+    set "APP_CMD=src.hy_motion_api.main:app --app-dir \"%PROJECT_DIR%\" --host %SERVER_HOST% --port %SERVER_PORT%"
+    if defined SERVER_LOG_LEVEL set "APP_CMD=!APP_CMD! --log-level %SERVER_LOG_LEVEL%"
+    start /b cmd /c "\"!UVICORN_CMD:EXEC!=!\" !APP_CMD!"
 )
 goto :eof
 
