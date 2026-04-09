@@ -53,11 +53,6 @@ def get_runtime() -> T2MRuntime:
             )
         finally:
             os.chdir(original_cwd)
-            config_path=config_path,
-            ckpt_name=ckpt_name,
-            disable_prompt_engineering=settings.disable_prompt_engineering,
-            device_ids=list(range(torch.cuda.device_count())) if torch.cuda.is_available() else [],
-        )
 
     return _runtime
 
