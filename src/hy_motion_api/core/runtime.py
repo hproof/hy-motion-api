@@ -1,4 +1,6 @@
 """T2MRuntime 单例模块"""
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
