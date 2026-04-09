@@ -52,8 +52,14 @@ async def _process_task(task_id: str):
         runtime = get_runtime()
         params = task["params"]
 
+        # 生成随机种子（如果不提供）
+        seeds = params.get("seeds")
+        if not seeds:
+            import random
+            seeds = [random.randint(0, 999999)]
+
         # 转换 seeds 为逗号分隔字符串
-        seeds_csv = ",".join(str(s) for s in params["seeds"])
+        seeds_csv = ",".join(str(s) for s in seeds)
         output_format = params.get("output_format", "fbx")
 
         # 调用 T2MRuntime 生成动作（chdir 后工作目录已是 hy_motion_path）

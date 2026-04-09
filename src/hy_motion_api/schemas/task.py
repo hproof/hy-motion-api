@@ -26,7 +26,7 @@ class TaskCreate(BaseModel):
     """创建任务的请求体"""
     text: str = Field(..., min_length=1, max_length=500, description="动作描述文本（英文）")
     duration: float = Field(default=5.0, gt=0, le=12.0, description="动作时长（秒），建议 0.5-12 秒")
-    seeds: list[int] = Field(default=[0, 1, 2, 3], max_length=10, description="随机种子列表")
+    seeds: list[int] | None = Field(default=None, max_length=10, description="随机种子列表，不提供则自动生成")
     cfg_scale: float = Field(default=5.0, ge=1.0, le=20.0, description="CFG 引导强度")
     output_format: OutputFormat = Field(default=OutputFormat.FBX, description="输出格式")
 

@@ -83,7 +83,7 @@
 |------|------|------|--------|------|
 | `text` | string | 是 | - | 动作描述文本（英文），建议 60 词以内 |
 | `duration` | float | 否 | `5.0` | 动作时长（秒），有效范围 `0.5 ~ 12.0` |
-| `seeds` | array[int] | 否 | `[0, 1, 2, 3]` | 随机种子列表，最多 10 个，生成对应数量版本 |
+| `seeds` | array[int] | 否 | `null` | 随机种子列表，不提供则自动生成一个随机种子 |
 | `cfg_scale` | float | 否 | `5.0` | CFG 引导强度，范围 `1.0 ~ 20.0` |
 | `output_format` | string | 否 | `"fbx"` | 输出格式：`"fbx"` 或 `"dict"` |
 
@@ -280,8 +280,8 @@ HEADERS = {
     "X-Token": "token1"
 }
 
-# 提交任务（默认生成 4 个版本）
-def create_task(text: str, duration: float = 5.0, seeds: list = [0, 1, 2, 3]):
+# 提交任务（不提供 seeds 则自动生成随机种子）
+def create_task(text: str, duration: float = 5.0, seeds: list = None):
     response = requests.post(
         f"{BASE_URL}/tasks",
         json={
