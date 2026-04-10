@@ -18,6 +18,8 @@ cp config.example.toml config.toml
 # 编辑 config.toml，配置 HY-Motion-1.0 路径和认证
 ```
 
+开发环境如果没有 GPU，可在 `config.toml` 的 `[server]` 中设置 `test_mode = true`，此时不执行真实推理，固定等待 3 秒模拟 LLM 调用，其它流程照常执行。
+
 ### 2. 安装依赖
 
 ```bash

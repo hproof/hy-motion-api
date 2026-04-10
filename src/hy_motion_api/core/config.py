@@ -22,6 +22,7 @@ class Settings:
         self.host = config.get("server", {}).get("host", "0.0.0.0")
         self.port = config.get("server", {}).get("port", 8000)
         self.log_level = config.get("server", {}).get("log_level", "info")
+        self.test_mode = config.get("server", {}).get("test_mode", False)
 
         # HY-Motion 配置
         hy_motion = config.get("hy_motion", {})
@@ -34,8 +35,8 @@ class Settings:
         # 认证配置
         self.auth = config.get("auth", {})
 
-        # 队列文件路径（固定在 data 目录下）
-        self.queue_path = "data/queue.jsonl"
+        # 队列数据库路径（固定在 data 目录下）
+        self.queue_path = "data/queue.db"
 
         # 数据保留天数（默认 7 天）
         self.retention_days = config.get("server", {}).get("retention_days", 7)

@@ -1,13 +1,16 @@
 """任务路由"""
-import asyncio
-import os
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
+from io import StringIO
+from pathlib import Path
+import time
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..core.auth import auth_dependency
 from ..core.queue import get_queue
-from ..core.runtime import get_runtime
+from ..core.runtime import get_runtime, get_runtime_lock
+from ..core.worker import notify_worker
 from ..schemas.task import (
     OutputFormat,
     TaskCreate,
@@ -20,36 +23,18 @@ from ..schemas.task import (
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def process_task_background(task_id: str):
-    """后台处理任务（在线程池中运行，避免阻塞事件循环）"""
-    import sys
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        print(f"[task] {task_id}: Starting background processing", flush=True)
-        loop.run_until_complete(_process_task(task_id))
-        print(f"[task] {task_id}: Background processing completed", flush=True)
-    except Exception as e:
-        print(f"[task] {task_id}: Background processing error: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-    finally:
-        loop.close()
-
-
-async def _process_task(task_id: str):
-    """异步处理单个任务"""
-    import sys
-    from io import StringIO
-
+def process_task(task_id: str, task: dict | None = None):
+    """处理单个任务，由后台 worker 线程串行调用。"""
     queue = get_queue()
-    task = queue.get_task(task_id)
+    task = task or queue.get_task(task_id)
 
     if not task:
         return
 
-    # 更新状态为 running
-    queue.update_task(task_id, "running")
+    # 非 worker claim 场景下，补齐 running 状态。
+    if task.get("status") != "running":
+        queue.update_task(task_id, "running")
+        task["status"] = "running"
 
     # 打印任务参数
     params = task["params"]
@@ -57,9 +42,34 @@ async def _process_task(task_id: str):
 
     # 检查是否需要输出详细日志
     from ..core.config import get_settings
-    verbose = get_settings().log_level == "debug"
+    settings = get_settings()
+    verbose = settings.log_level == "debug"
 
     try:
+        if settings.test_mode:
+            # 测试模式：模拟 LLM 调用耗时，不执行真实推理
+            time.sleep(3.0)
+
+            output_format = params.get("output_format", "fbx")
+            output_dir = Path(settings.output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            dummy_fbx = output_dir / f"{task_id}.fbx"
+            dummy_fbx.write_text("HY-Motion API test mode placeholder", encoding="utf-8")
+
+            queue.update_task(
+                task_id,
+                "completed",
+                result={
+                    "fbx_files": [str(dummy_fbx)],
+                    "html_content": "<html><body>HY-Motion API test mode</body></html>"
+                    if output_format == "dict"
+                    else None,
+                    "message": "test mode",
+                },
+            )
+            return
+
         runtime = get_runtime()
 
         # 生成随机种子（如果不提供）
@@ -72,30 +82,29 @@ async def _process_task(task_id: str):
         seeds_csv = ",".join(str(s) for s in seeds)
         output_format = params.get("output_format", "fbx")
 
-        output_dir = get_settings().output_dir
+        output_dir = settings.output_dir
 
-        # 捕获 HY-Motion-1.0 内部的 print 输出
-        old_stdout = sys.stdout
-        sys.stdout = StringIO()
+        # T2MRuntime 和 stdout/stderr 捕获都依赖进程级全局状态，并发执行会互相干扰。
+        capture_buffer = StringIO()
 
-        try:
-            html_content, fbx_files, _ = runtime.generate_motion(
-                text=params["text"],
-                seeds_csv=seeds_csv,
-                duration=params["duration"],
-                cfg_scale=params.get("cfg_scale", 5.0),
-                output_format=output_format,
-                output_dir=output_dir,
-                original_text=params["text"],
-            )
-        finally:
-            captured = sys.stdout.getvalue()
-            sys.stdout = old_stdout
-            if verbose and captured:
-                print(f"[task] {task_id}: --- HY-Motion-1.0 output start ---", flush=True)
-                for line in captured.strip().split("\n"):
-                    print(f"[task] {task_id}: {line}", flush=True)
-                print(f"[task] {task_id}: --- HY-Motion-1.0 output end ---", flush=True)
+        with get_runtime_lock():
+            with redirect_stdout(capture_buffer), redirect_stderr(capture_buffer):
+                html_content, fbx_files, _ = runtime.generate_motion(
+                    text=params["text"],
+                    seeds_csv=seeds_csv,
+                    duration=params["duration"],
+                    cfg_scale=params.get("cfg_scale", 5.0),
+                    output_format=output_format,
+                    output_dir=output_dir,
+                    original_text=params["text"],
+                )
+
+        captured = capture_buffer.getvalue()
+        if verbose and captured:
+            print(f"[task] {task_id}: --- HY-Motion-1.0 output start ---", flush=True)
+            for line in captured.strip().splitlines():
+                print(f"[task] {task_id}: {line}", flush=True)
+            print(f"[task] {task_id}: --- HY-Motion-1.0 output end ---", flush=True)
 
         # 提取输出文件路径（fbx_files 是 [fbx, txt, fbx, txt, ...] 格式）
         # 只保留 fbx 文件（偶数索引）
@@ -122,7 +131,6 @@ async def _process_task(task_id: str):
 async def create_task(
     task_data: TaskCreate,
     _: str = Depends(auth_dependency),
-    background_tasks: BackgroundTasks = None,
 ):
     """提交新任务"""
     queue = get_queue()
@@ -141,9 +149,8 @@ async def create_task(
 
     print(f"[task] {task_id}: Task submitted: text='{task_data.text}', duration={task_data.duration}, seeds={task_data.seeds}, cfg_scale={task_data.cfg_scale}", flush=True)
 
-    # 启动后台处理
-    if background_tasks:
-        background_tasks.add_task(process_task_background, task_id)
+    # 唤醒单后台 worker 处理队列
+    notify_worker()
 
     return TaskCreateResponse(
         task_id=task_id,

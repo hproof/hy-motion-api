@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from .core.config import get_settings
 from .core.queue import get_queue
 from .core.runtime import get_runtime
+from .core.worker import start_worker, stop_worker
 from .routes import health, queue, tasks
 
 
@@ -28,14 +29,22 @@ async def lifespan(app: FastAPI):
         print(f">>> Cleaned up {deleted_tasks} old tasks and {len(deleted_files)} files")
 
     # 启动时预加载模型
-    print(">>> Loading T2MRuntime...")
-    try:
-        runtime = get_runtime()
-        print(f">>> T2MRuntime loaded, GPU available: {runtime.device_ids}")
-    except Exception as e:
-        print(f">>> Failed to load T2MRuntime: {e}")
+    if settings.test_mode:
+        print(">>> Test mode enabled, skip loading T2MRuntime")
+    else:
+        print(">>> Loading T2MRuntime...")
+        try:
+            runtime = get_runtime()
+            print(f">>> T2MRuntime loaded, GPU available: {runtime.device_ids}")
+        except Exception as e:
+            print(f">>> Failed to load T2MRuntime: {e}")
+
+    start_worker()
+    print(">>> Background worker started")
 
     yield
+
+    stop_worker()
 
     # 关闭时恢复工作目录
     os.chdir(original_cwd)

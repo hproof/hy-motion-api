@@ -5,6 +5,8 @@
 host = "0.0.0.0"
 port = 8000
 log_level = "info"  # 日志级别: debug, info, warning, error
+# 测试模式（开发环境无 GPU 时使用，跳过真实推理）
+test_mode = false
 # 数据保留天数（任务和生成文件）
 retention_days = 7
 
