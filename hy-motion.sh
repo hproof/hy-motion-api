@@ -57,6 +57,12 @@ get_server_log_level() {
     fi
 }
 
+get_output_dir() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        grep -A10 "^\[hy_motion\]" "$CONFIG_FILE" | grep "^output_dir" | sed 's/output_dir = "//' | sed 's/"//' | sed 's/#.*//' | tr -d ' '
+    fi
+}
+
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         error "请使用 sudo 运行此脚本"
@@ -340,7 +346,25 @@ help() {
     echo "  status   查看状态"
     echo "  logs     查看日志"
     echo "  test     测试连通性"
+    echo "  clean    停止服务并清空数据库和生成文件"
     echo "  help     显示帮助"
+}
+
+# 停止服务并清理数据库和生成文件
+clean() {
+    stop
+
+    local data_dir="${PROJECT_DIR}/data"
+    rm -f "${data_dir}/queue.db" "${data_dir}/queue.db-wal" "${data_dir}/queue.db-shm" "${data_dir}/queue.jsonl"
+
+    local hy_path=$(get_hy_motion_path)
+    local output_dir=$(get_output_dir)
+    if [[ -n "$hy_path" && -n "$output_dir" ]]; then
+        local full_output_dir="${hy_path}/${output_dir}"
+        rm -rf "$full_output_dir"
+    fi
+
+    info "清理完成"
 }
 
 case "$1" in
@@ -354,6 +378,7 @@ case "$1" in
     status)   status ;;
     logs)     logs ;;
     test)     test ;;
+    clean)    clean ;;
     help|--help|-h) help ;;
     *)        help ;;
 esac

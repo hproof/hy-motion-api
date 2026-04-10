@@ -36,10 +36,8 @@ env/
 # Configuration (contains secrets)
 config.toml
 
-# Queue data
-data/queue.db
-data/queue.db-shm
-data/queue.db-wal
+# Data
+data/
 
 # Output files
 output/

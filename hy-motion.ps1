@@ -15,6 +15,7 @@ function Show-Help {
     Write-Host "  stop      停止服务"
     Write-Host "  restart   重启服务"
     Write-Host "  reload    重载配置"
+    Write-Host "  clean     停止服务并清空数据库和生成文件"
 }
 
 function Read-Config {
@@ -28,6 +29,7 @@ function Read-Config {
         port = "8000"
         log_level = ""
         test_mode = "false"
+        output_dir = "output/api"
     }
 
     $section = ""
@@ -42,10 +44,15 @@ function Read-Config {
             $section = $Matches[1]
             return
         }
-        if ($line -match "^(path)\s*=\s*(.+)$") {
+        if ($line -match "^(path|output_dir)\s*=\s*(.+)$") {
             if ($section -eq "hy_motion") {
+                $key = $Matches[1]
                 $val = $Matches[2].Trim().Trim('"')
-                $cfg["hy_path"] = $val
+                if ($key -eq "path") {
+                    $cfg["hy_path"] = $val
+                } elseif ($key -eq "output_dir") {
+                    $cfg["output_dir"] = $val
+                }
             }
             return
         }
@@ -164,6 +171,39 @@ function Reload-ServiceTask {
     Write-Host "配置已重载"
 }
 
+function Clean-AllData {
+    Write-Host "停止服务..."
+    Stop-ServiceTask
+
+    $dataDir = Join-Path $ProjectDir "data"
+    $filesToRemove = @(
+        (Join-Path $dataDir "queue.db"),
+        (Join-Path $dataDir "queue.db-wal"),
+        (Join-Path $dataDir "queue.db-shm"),
+        (Join-Path $dataDir "queue.jsonl")
+    )
+
+    foreach ($f in $filesToRemove) {
+        if (Test-Path $f) {
+            Remove-Item -Force $f
+        }
+    }
+
+    try {
+        $cfg = Read-Config
+        if (-not [string]::IsNullOrWhiteSpace($cfg.hy_path)) {
+            $outputDir = Join-Path $cfg.hy_path $cfg.output_dir
+            if (Test-Path $outputDir) {
+                Remove-Item -Recurse -Force $outputDir
+            }
+        }
+    } catch {
+        Write-Host "未找到配置文件，跳过输出目录清理"
+    }
+
+    Write-Host "清理完成"
+}
+
 Write-Host "HY-Motion API 服务管理脚本"
 Write-Host "============================="
 Write-Host ""
@@ -184,5 +224,6 @@ switch ($args[0]) {
     "stop" { Stop-ServiceTask }
     "restart" { Restart-ServiceTask }
     "reload" { Reload-ServiceTask }
+    "clean" { Clean-AllData }
     default { Show-Help }
 }

@@ -75,6 +75,7 @@ hy-motion-api/
 ./hy-motion.sh reload   # 重载配置
 ./hy-motion.sh status   # 查看状态
 ./hy-motion.sh logs    # 查看日志 (Linux)
+./hy-motion.sh clean   # 停止服务并清空数据库和生成文件
 ```
 
 ### 开机自启
