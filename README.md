@@ -32,6 +32,10 @@ cp config.example.toml config.toml
 ./hy-motion.sh start
 ```
 
+### 运行注意
+
+- 当前后台 worker 未做跨进程互斥控制，请不要使用多进程模式启动（例如 `uvicorn --workers >1` 或 Gunicorn 多 worker）。多进程会导致多个 worker 并行领取不同任务，违反 GPU 独占/串行处理要求，可能触发并发 GPU 使用或 OOM。
+
 ### 4. 验证
 
 ```bash
