@@ -1,5 +1,4 @@
 """健康检查路由"""
-import torch
 
 from fastapi import APIRouter
 

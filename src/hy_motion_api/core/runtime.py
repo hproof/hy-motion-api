@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import sys
+import threading
 from pathlib import Path
-
-import torch
 
 # 确保 HY-Motion-1.0 在 Python 路径中
 _current_file = Path(__file__).resolve()
@@ -12,6 +11,7 @@ _current_file = Path(__file__).resolve()
 _project_root = _current_file.parent.parent.parent
 
 _runtime: T2MRuntime | None = None
+_runtime_lock = threading.Lock()
 
 
 def get_runtime() -> T2MRuntime:
@@ -20,6 +20,10 @@ def get_runtime() -> T2MRuntime:
 
     if _runtime is None:
         from .config import get_settings
+        try:
+            import torch  # type: ignore
+        except Exception as e:
+            raise RuntimeError("PyTorch is required to load T2MRuntime. Enable test_mode or install torch.") from e
 
         settings = get_settings()
         hy_motion_path = settings.hy_motion_path
@@ -51,8 +55,17 @@ def get_runtime() -> T2MRuntime:
     return _runtime
 
 
+def get_runtime_lock() -> threading.Lock:
+    """获取运行时互斥锁，保护非线程安全的推理和 stdout 捕获逻辑。"""
+    return _runtime_lock
+
+
 def is_gpu_available() -> bool:
     """检查 GPU 是否可用"""
+    try:
+        import torch  # type: ignore
+    except Exception:
+        return False
     return torch.cuda.is_available()
 
 
