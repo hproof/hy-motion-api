@@ -53,7 +53,7 @@ get_server_port() {
 
 get_server_log_level() {
     if [[ -f "$CONFIG_FILE" ]]; then
-        grep -A5 "^\[server\]" "$CONFIG_FILE" | grep "^log_level" | sed 's/log_level = "//' | sed 's/"//' | tr -d ' '
+        grep -A5 "^\[server\]" "$CONFIG_FILE" | grep "^log_level" | sed 's/log_level = "//' | sed 's/"//' | sed 's/#.*//' | tr -d ' '
     fi
 }
 
