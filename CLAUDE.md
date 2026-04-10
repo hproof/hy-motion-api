@@ -21,7 +21,7 @@ hy-motion-api/
 │       ├── routes/          # API 路由
 │       └── schemas/         # Pydantic 模型
 ├── data/                    # 数据目录
-│   └── queue.jsonl          # 任务队列
+│   └── queue.db             # SQLite 任务队列
 ├── config.toml              # 配置文件
 ├── docs/                    # 文档
 └── pyproject.toml
@@ -94,13 +94,13 @@ user2 = "token2"
 
 ### 任务队列
 
-- 基于 `data/queue.jsonl` (JSON Lines)
-- 后台 BackgroundTasks 处理
+- 基于 `data/queue.db` (SQLite)
+- 后台 worker 串行处理，任务领取使用原子 claim
 - 状态：`pending` → `running` → `completed` / `failed`
 
 ## 开发注意事项
 
 1. **配置文件**: `config.toml` 包含敏感信息，不应提交到 Git
-2. **队列文件**: `data/queue.jsonl` 不应提交到 Git
+2. **队列文件**: `data/queue.db*` 不应提交到 Git
 3. **PYTHONPATH**: 生产部署需设置 `PYTHONPATH` 指向 HY-Motion-1.0 目录
 4. **GPU 独占**: GPU 推理同时只能处理一个任务

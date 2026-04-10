@@ -37,7 +37,9 @@ env/
 config.toml
 
 # Queue data
-data/queue.jsonl
+data/queue.db
+data/queue.db-shm
+data/queue.db-wal
 
 # Output files
 output/
@@ -62,3 +64,4 @@ htmlcov/
 *.lock
 
 .claude/
+test-hy-motion-path/
